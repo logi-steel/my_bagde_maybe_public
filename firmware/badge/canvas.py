@@ -86,8 +86,27 @@ class Canvas:
                         self.fb.fill_rect(x + self.ox + (i * 8 + gx) * scale,
                                           y + self.oy + gy * scale, scale, scale, c)
 
-    def bits(self, x, y, w, h, data, ink=BLACK):
-        """Draw a packed 1-bit bitmap (MSB first, ink = bit set, rows padded to bytes)."""
+    def bits(self, x, y, w, h, data, ink=BLACK, scale=1):
+        """Draw a packed 1-bit bitmap (MSB first, ink = bit set, rows padded to bytes).
+
+        scale > 1 enlarges it by whole pixels (nearest neighbour, crisp on e-paper).
+        """
+        if scale > 1:
+            bpr = (w + 7) >> 3
+            fill = self.fb.fill_rect
+            ox, oy = x + self.ox, y + self.oy
+            for ry in range(h):
+                base = ry * bpr
+                cx = 0
+                while cx < w:
+                    if data[base + (cx >> 3)] & (0x80 >> (cx & 7)):
+                        start = cx
+                        while cx < w and data[base + (cx >> 3)] & (0x80 >> (cx & 7)):
+                            cx += 1
+                        fill(ox + start * scale, oy + ry * scale, (cx - start) * scale, scale, ink)
+                    else:
+                        cx += 1
+            return
         stride = ((w + 7) >> 3) << 3
         if ink == BLACK:
             data = bytearray(b ^ 255 for b in data)
@@ -97,6 +116,40 @@ class Canvas:
             key = 0
         g = framebuf.FrameBuffer(data, w, h, framebuf.MONO_HLSB, stride)
         self.fb.blit(g, x + self.ox, y + self.oy, key)
+
+    def art(self, x, y, rows, scale=1, ink=BLACK, on="#X@*1", opaque=False, invert=False):
+        """Draw ASCII pixel art: every character in `on` is an ink pixel, all others are
+        transparent (paper when opaque=True; invert=True swaps the two roles).
+
+            c.art(10, 10, ["..##..",
+                           ".####.",
+                           "######"], scale=3)
+
+        Returns (width, height) in screen pixels, handy for placing things next to it.
+        """
+        scale = max(1, int(scale))
+        rows = [str(r) for r in rows]
+        h = len(rows)
+        w = max([len(r) for r in rows] or [0])
+        if w * scale > 2000 or h * scale > 2000:
+            raise ValueError("art is too big (%dx%d px)" % (w * scale, h * scale))
+        if opaque and w and h:
+            self.rect(x, y, w * scale, h * scale, 1 - ink, True)
+        for ry in range(h):
+            row = rows[ry]
+            if invert and len(row) < w:
+                row = row + "." * (w - len(row))  # missing cells count as "off", i.e. ink when inverted
+            n = len(row)
+            cx = 0
+            while cx < n:
+                if (row[cx] in on) != invert:
+                    start = cx
+                    while cx < n and (row[cx] in on) != invert:
+                        cx += 1
+                    self.rect(x + start * scale, y + ry * scale, (cx - start) * scale, scale, ink, True)
+                else:
+                    cx += 1
+        return w * scale, h * scale
 
     def get(self, x, y):
         return self.fb.pixel(x + self.ox, y + self.oy)

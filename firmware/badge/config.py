@@ -5,7 +5,7 @@ from . import util
 CONFIG = "/config.json"
 BACKUP = "/config.json.bak"
 
-WIDGETS = ("text", "rect", "line", "circle", "image", "qr", "chips", "battery", "plugin")
+WIDGETS = ("text", "rect", "line", "circle", "image", "art", "qr", "chips", "battery", "plugin")
 
 DEFAULTS = {
     "version": 1,
@@ -122,6 +122,22 @@ def validate(cfg):
                     errs.append(t + ": image needs \"src\"")
                 elif not util.exists("/" + it["src"].lstrip("/")):
                     warns.append("%s: image %r not found" % (t, it["src"]))
+            if typ == "art":
+                rows = it.get("rows")
+                if rows is None and isinstance(it.get("data"), str):
+                    rows = it["data"].split("|")
+                if not isinstance(rows, list) or not all(isinstance(r, str) for r in rows):
+                    errs.append(t + ': art needs "rows": a list of strings')
+                else:
+                    aw = max([len(r) for r in rows] or [0]) * max(1, int(it.get("scale", 1) or 1))
+                    ah = len(rows) * max(1, int(it.get("scale", 1) or 1))
+                    if aw > 1000 or ah > 1000:
+                        errs.append("%s: art is too big (%dx%d px)" % (t, aw, ah))
+                    elif _is_num(it.get("x", 0)) and _is_num(it.get("y", 0)) and (
+                            it.get("x", 0) + aw > w or it.get("y", 0) + ah > h):
+                        warns.append("%s: art (%dx%d px) reaches outside the %dx%d screen" % (t, aw, ah, w, h))
+                if "on" in it and not isinstance(it["on"], str):
+                    errs.append(t + ': "on" must be a string of ink characters')
             if typ == "qr" and not it.get("data"):
                 errs.append(t + ": qr needs \"data\"")
             if typ == "plugin":

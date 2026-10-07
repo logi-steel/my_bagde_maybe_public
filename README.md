@@ -1,3 +1,6 @@
+# my_bagde_maybe_public
+some ai slop mixed with my learning lol 
+
 # E-ink badge you can reprogram from your phone
 **Some ai slop mixed with my learning so pls be carefull.**
 A tiny name badge: ESP32-C3 + 2.13" e-paper, **MicroPython**, everything on the screen is described
@@ -10,7 +13,8 @@ PC, no toolchain, no recompiling.
 *The picture above is rendered by the badge's own renderer running on a PC (`tools/preview.py`).*
 
 * 250x122 e-paper, always readable, **zero power while showing a page** (deep sleep between presses)
-* pages: text (Polish letters included), chips/tags, rectangles, lines, images, **QR codes** (generated on the
+* pages: text (Polish letters included), chips/tags, rectangles, lines, images (a full-screen picture from Canva & co,
+  or pixel art typed as text), **QR codes** (generated on the
   device, so a vCard or link can be edited from the phone), battery gauge, and your own **Python plugins**
 * Wi-Fi portal with live preview rendered *by the badge itself*, JSON editor, file manager, image
   converter (dithering in the browser), rollback buttons, captive-portal pop-up
@@ -19,6 +23,17 @@ PC, no toolchain, no recompiling.
   and if a firmware upload breaks the startup the badge **rolls back to the `.bak` files by itself** (once,
   no ping-pong loops) and keeps the broken version as `.bak` so you can look at it
 * 3D-printable case (OpenSCAD, parametric, interference-checked)
+
+## Make your own graphics
+
+> **Use this template to make your own badge graphics!** *(Dzięki temu szablonowi możesz robić własną grafikę!)*
+
+[![the badge template: a red edge, everything else is yours](templates/graphics/badge_template.png)](templates/graphics/README.md)
+
+Take [`badge_template_overlay.png`](templates/graphics/badge_template_overlay.png) into Canva (or any editor), make a page of
+**1000 x 488 px**, lay the overlay over it, draw whatever you like (your cat, any text, anywhere) and delete the overlay
+before exporting. Then **Image -> Full screen -> Upload & add as a page** in the badge's portal. The only limits are the
+screen size and the red edge the case may hide - [how it works, with an example](templates/graphics/README.md).
 
 > **Read "What is verified and what is not" below before you buy parts or print the case.**
 > I had no physical hardware: everything was tested against simulators/mocks and datasheets.
@@ -119,7 +134,8 @@ Update later with `python3 tools/deploy.py --code-only` (keeps your `config.json
 2. Open `http://192.168.4.1` (most phones pop it up automatically; a catch-all DNS makes that work).
 3. **Preview** tab: live preview rendered by the badge with your unsaved edits - **Show on badge** refreshes the e-paper.
 4. **Config** tab: edit the JSON, **Save**. **Files** tab: edit `.py`/`.json`, upload fonts/images/plugins, undo.
-5. **Image** tab: pick a photo, it is dithered in the browser and uploaded as a `.pbm`.
+5. **Image** tab: pick a picture, it is dithered in the browser; **Upload & add as a page** uploads it as a `.pbm`
+   and puts it on a new page (**Full screen** sizes it to the whole display) - see [make your own graphics](templates/graphics/README.md).
 6. The portal closes after 5 idle minutes or on a button press, then the badge reboots into the new config.
 
 <img src="docs/img/ui_preview.png" width="260"> <img src="docs/img/ui_config.png" width="260"> <img src="docs/img/ui_files.png" width="260">
@@ -154,7 +170,8 @@ the phone". The portal only runs when you ask for it.
 |---|---|
 | `text` | `text x y [w align=left\|center\|right wrap lines gap font ink]`; `{vars}`, `{battery}`, `{page}`, `{pages}` |
 | `rect` / `circle` / `line` | `x y w h [r fill ink]` / `x y r [fill]` / `x1 y1 x2 y2 [thickness]` |
-| `image` | `src x y [invert]` - 1-bit PBM from `tools/img2pbm.py` or the Image tab |
+| `image` | `src x y [scale invert opaque ink]` - 1-bit PBM from `tools/img2pbm.py` or the Image tab; `scale` enlarges by whole pixels, `opaque` paints the paper too |
+| `art` | `rows[] (or data "..\|..") x y [scale on invert opaque ink]` - pixel art typed as text: `#` = ink, `.` = nothing (`tools/pixelart.py` converts to/from PBM and images) |
 | `qr` | `data x y [size \| scale, ecc=L\|M\|Q\|H, border]` - up to 271 bytes at ECC L |
 | `chips` | `items[] x y [w font padx pady gap r fill]` |
 | `battery` | `x y [text]` (needs the divider on GPIO4 and `"hardware": {"bat_adc": 4}`; draws nothing otherwise) |
@@ -244,10 +261,15 @@ UART REPL on GPIO20/21, `RTC.memory` 2048 bytes, `ADC.read_uv`, C3 has only `SPI
 | `qr` | the on-device QR encoder is **bit-identical** to `python-qrcode` for v1-v10 x L/M/Q/H x 8 masks, capacities match `segno`, codes decode with OpenCV |
 | `layout` | JSON -> pixels, wrapping, alignment, widget error isolation, config validation, atomic save + backup + fallback |
 | `app` | the whole wake -> render -> SPI -> sleep flow: power-on, tap, partial/full cadence, auto-rotate timer, long press, stuck button, missing panel, crash screen, dev mode |
+| `power` | battery percentage curve and ADC path, button helpers |
 | `recover` | a broken over-the-air update: automatic rollback, the broken file stays as `.bak`, no rollback loop when both versions are bad, an hour of sleep instead of a crash loop |
 | `portal` | real HTTP + DNS against the firmware: config save/restore, validation, draft preview, plugin upload + hot reload + rollback, syntax-error rejection, path traversal, size limits, 6 parallel clients, idle/button quit - and the **join QR decoded from the simulated e-paper pixels equals the Wi-Fi credentials** |
 | `tools` | img2pbm, make_font, deploy command, preview |
-| web UI | driven with headless Chromium (no JS errors); found and fixed a real bug that way |
+| `graphics` | `art` / `scale` / `opaque` / `invert` drawn pixel for pixel, PBM reader limits, bad input rejected without crashing the page |
+| `pixelart` | `tools/pixelart.py` round trips (text <-> PBM <-> image) through the firmware's own reader and validator; PBM polarity checked against ImageMagick |
+| `graphics_template` | the template PNGs: sizes, transparent inside, red edge all round, they are exactly what `tools/make_graphics_template.py` makes; the cat example converts to a valid 250x122 PBM |
+| `portal_ui` | headless Chromium against the simulated badge: choose a picture -> Full screen -> Upload & add as a page; the page lands in the config once, the `.pbm` is 250x122, no JS errors (skipped when playwright/chromium is missing) |
+| web UI | also driven by hand with headless Chromium earlier (found and fixed a real bug that way) |
 | case | see above |
 
 **NOT verified - no hardware, no way for me to check:**
@@ -270,12 +292,14 @@ UART REPL on GPIO20/21, `RTC.memory` 2048 bytes, `ADC.read_uv`, C3 has only `SPI
 ```
 firmware/   what goes on the badge (main.py, badge/ package, web/index.html, fonts/, img/, plugins/, config.json)
 case/       badge_case.scad + stl/
-tools/      deploy.py  preview.py  make_font.py  img2pbm.py  check_case.py
+templates/  graphics/: the template for your own graphics, how-to and a worked example
+tools/      deploy.py  preview.py  make_font.py  img2pbm.py  pixelart.py  make_graphics_template.py  check_case.py
 tests/      run.sh (host test runner), mocks/ (machine, esp32, network, SSD1680 simulator), test_*.py
 docs/img/   pictures used in this README
 ```
 
 Run all tests: `sudo apt install micropython openscad xvfb && pip install pillow numpy opencv-python-headless segno qrcode trimesh fonttools mpremote && tests/run.sh`
+(add `playwright` + its chromium for the browser test; ImageMagick's `convert` for the PBM polarity check)
 (the runner downloads the pure-Python part of MicroPython's `asyncio` for the unix port into `tests/.hostlib`).
 
 ## Credits and licences
