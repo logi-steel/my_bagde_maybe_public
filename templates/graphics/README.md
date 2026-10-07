@@ -10,7 +10,7 @@ The whole screen is yours. The template only shows the two things you cannot cha
 | | |
 |---|---|
 | **the size** | the badge screen is **250 x 122 px**. The template is that **x 4 = 1000 x 488 px**, big enough to work comfortably. |
-| **the red edge** | the case window can hide about 1 mm of the edge (about 5 badge pixels, 6 here). Do not put anything you need there - a photo may run into it, a name may not. |
+| **the red edge** | a safety margin of 6 badge pixels (about 1.2 mm; 24 px here). In my case design the window is only 0.4 mm larger than the screen per side, and where the window really sits relative to the panel is not verified (see the main README), so the case may cover a bit of the edge. Do not put anything you need there - a photo may run into it, a name may not. |
 
 Nothing else is prescribed: no zones, no grid, no fonts. A photo of your cat across the whole screen is fine, so is one
 word in giant letters.

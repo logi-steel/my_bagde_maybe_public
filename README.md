@@ -261,6 +261,7 @@ UART REPL on GPIO20/21, `RTC.memory` 2048 bytes, `ADC.read_uv`, C3 has only `SPI
 | `qr` | the on-device QR encoder is **bit-identical** to `python-qrcode` for v1-v10 x L/M/Q/H x 8 masks, capacities match `segno`, codes decode with OpenCV |
 | `layout` | JSON -> pixels, wrapping, alignment, widget error isolation, config validation, atomic save + backup + fallback |
 | `app` | the whole wake -> render -> SPI -> sleep flow: power-on, tap, partial/full cadence, auto-rotate timer, long press, stuck button, missing panel, crash screen, dev mode |
+| `power` | battery percentage curve and ADC path, button helpers |
 | `recover` | a broken over-the-air update: automatic rollback, the broken file stays as `.bak`, no rollback loop when both versions are bad, an hour of sleep instead of a crash loop |
 | `portal` | real HTTP + DNS against the firmware: config save/restore, validation, draft preview, plugin upload + hot reload + rollback, syntax-error rejection, path traversal, size limits, 6 parallel clients, idle/button quit - and the **join QR decoded from the simulated e-paper pixels equals the Wi-Fi credentials** |
 | `tools` | img2pbm, make_font, deploy command, preview |

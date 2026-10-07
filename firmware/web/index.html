@@ -69,7 +69,9 @@ text   text x y [w align=left|center|right wrap lines gap font ink]
          text may contain {vars} (see "vars"), {battery} {page} {pages}
          fonts: s12 s16 b16 b24 b36 m12 px16  (8x8 / 8x8x2 = built-in)
 rect   x y w h [r fill ink]      circle x y r [fill]
-line   x1 y1 x2 y2 [thickness]   image  src x y [invert]   (PBM from Image tab)
+line   x1 y1 x2 y2 [thickness]
+image  src x y [scale invert opaque ink]   (PBM from the Image tab)
+art    rows[] x y [scale on invert opaque ink]   pixel art typed as text, # = ink
 qr     data x y [size|scale ecc=L|M|Q|H border]
 chips  items[] x y [w font padx pady gap r fill]
 battery x y [text]               plugin name x y [...your own keys]
