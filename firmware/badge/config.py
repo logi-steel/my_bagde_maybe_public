@@ -21,7 +21,8 @@ DEFAULTS = {
         "spi_id": 1, "sck": 8, "mosi": 10, "miso": 9,
         "cs": 5, "dc": 6, "rst": 7, "busy": 2,
         "btn_next": 3, "btn_prev": None,
-        "bat_adc": 4, "bat_divider": 2.0,
+        "bat_adc": None,          # set to 4 after adding the 2x470k divider (floating pin = random %)
+        "bat_divider": 2.0,
     },
     "vars": {},
     "pages": [],
