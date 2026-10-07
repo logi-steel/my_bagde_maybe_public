@@ -1,3 +1,6 @@
+# my_bagde_maybe_public
+some ai slop mixed with my learning lol 
+
 # E-ink badge you can reprogram from your phone
 
 A tiny name badge: ESP32-C3 + 2.13" e-paper, **MicroPython**, everything on the screen is described
