@@ -75,7 +75,7 @@ D0         2      e-paper BUSY
 GND        -      e-paper GND
 
 D1         3      button -> GND,  AND 100k from D1 to 3V3   <- external pull-up
-D2         4      (optional) midpoint of 2x470k from BAT+ to GND, 100 nF to GND
+D2         4      (optional) midpoint of 2x470k from BAT+ to GND, 100 nF to GND, then set hardware.bat_adc = 4
 BAT+/BAT-  -      LiPo (check the polarity printed on YOUR board before soldering!)
 ```
 
@@ -157,7 +157,7 @@ the phone". The portal only runs when you ask for it.
 | `image` | `src x y [invert]` - 1-bit PBM from `tools/img2pbm.py` or the Image tab |
 | `qr` | `data x y [size \| scale, ecc=L\|M\|Q\|H, border]` - up to 271 bytes at ECC L |
 | `chips` | `items[] x y [w font padx pady gap r fill]` |
-| `battery` | `x y [text]` (needs the divider on GPIO4) |
+| `battery` | `x y [text]` (needs the divider on GPIO4 and `"hardware": {"bat_adc": 4}`; draws nothing otherwise) |
 | `plugin` | `name x y ...your own keys` -> runs `plugins/<name>.py` |
 
 Fonts: `s12 s16 b16 b24 b36 m12 px16` (DejaVu + Unifont, with Polish letters), `8x8` / `8x8x2` built in. Add your own with
