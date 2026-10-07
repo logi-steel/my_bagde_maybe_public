@@ -1,5 +1,5 @@
 # E-ink badge you can reprogram from your phone
-** Some ai slop mixed with my learning so pls be carefull **
+**Some ai slop mixed with my learning so pls be carefull**
 A tiny name badge: ESP32-C3 + 2.13" e-paper, **MicroPython**, everything on the screen is described
 by one `config.json`. Long-press the button, scan the QR code on the badge, and edit the layout,
 add pages, upload images/fonts or even **change the Python code from your phone's browser**. No
