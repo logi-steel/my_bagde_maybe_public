@@ -5,8 +5,9 @@
 
 The template shows only what physically limits a design - nothing else:
   * the size of the screen (250 x 122, or 122 x 250 when the badge is set to portrait)
-  * the RED EDGE: the outer 6 px (24 px on the x4 canvas). The case window can hide up to ~1 mm of the
-    edge (= about 5 px), so do not put anything important there.
+  * the RED EDGE: the outer 6 px (24 px on the x4 canvas), about 1.2 mm. A safety margin: the case window is only
+    0.4 mm larger than the screen per side and its exact position is not verified, so up to ~1 mm (= about 5 px)
+    of the edge may end up covered. Do not put anything important there.
 
 Files (landscape; add "_portrait" for the 488 x 1000 version):
   badge_template.png          1000 x 488, opaque, labelled      -> look at it
