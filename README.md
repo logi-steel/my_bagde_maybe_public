@@ -27,7 +27,7 @@ PC, no toolchain, no recompiling.
 
 ## Why MicroPython and not C++?
 
-You asked whether C++ could update JSON *and code* on the fly. Honest answer:
+You all maybe asking whether C++ could update JSON *and code* on the fly. Honest answer:
 
 | | C++ (Arduino/ESP-IDF) | MicroPython |
 |---|---|---|
