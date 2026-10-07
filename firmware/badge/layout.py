@@ -96,7 +96,12 @@ def read_pbm(path):
         nums.append(int(d[start:pos]))
     pos += 1
     w, h = nums
-    return w, h, d[pos:pos + ((w + 7) >> 3) * h]
+    if w < 1 or h < 1 or w > 1000 or h > 1000:
+        raise ValueError("%s: unsupported size %dx%d" % (path, w, h))
+    body = d[pos:pos + ((w + 7) >> 3) * h]
+    if len(body) < ((w + 7) >> 3) * h:
+        raise ValueError("%s: file is truncated (%d of %d bytes)" % (path, len(body), ((w + 7) >> 3) * h))
+    return w, h, body
 
 
 class Ctx:
@@ -139,6 +144,18 @@ class Ctx:
                     f = Font8(2)
             self._fonts[name] = f
         return f
+
+    def image(self, src, x, y, scale=1, invert=False, opaque=False, ink=None):
+        """Draw a PBM image (path relative to /, e.g. "img/logo.pbm"). Returns (w, h) in pixels."""
+        w, h, data = read_pbm("/" + str(src).lstrip("/"))
+        ink = self.default_ink if ink is None else ink
+        if invert:
+            ink = 1 - ink
+        scale = max(1, int(scale))
+        if opaque:
+            self.canvas.rect(x, y, w * scale, h * scale, 1 - ink, True)
+        self.canvas.bits(x, y, w, h, data, ink, scale)
+        return w * scale, h * scale
 
     def ink(self, item):
         v = item.get("ink")
@@ -250,11 +267,18 @@ def w_circle(c, it, ctx):
 
 
 def w_image(c, it, ctx):
-    w, h, data = read_pbm("/" + str(it["src"]).lstrip("/"))
-    ink = ctx.ink(it)
-    if it.get("invert"):
-        ink = 1 - ink
-    c.bits(_num(it, "x"), _num(it, "y"), w, h, data, ink)
+    ctx.image(it["src"], _num(it, "x"), _num(it, "y"), scale=_num(it, "scale", 1),
+              invert=bool(it.get("invert")), opaque=bool(it.get("opaque")), ink=ctx.ink(it))
+
+
+def w_art(c, it, ctx):
+    rows = it.get("rows")
+    if rows is None and isinstance(it.get("data"), str):
+        rows = it["data"].split("|")
+    if not isinstance(rows, (list, tuple)):
+        raise ValueError('art needs "rows": a list of strings')
+    c.art(_num(it, "x"), _num(it, "y"), rows, scale=_num(it, "scale", 1), ink=ctx.ink(it),
+          on=str(it.get("on", "#X@*1")), opaque=bool(it.get("opaque")), invert=bool(it.get("invert")))
 
 
 def w_qr(c, it, ctx):
@@ -319,7 +343,7 @@ def w_plugin(c, it, ctx):
 
 _WIDGETS = {
     "text": w_text, "rect": w_rect, "line": w_line, "circle": w_circle, "image": w_image,
-    "qr": w_qr, "chips": w_chips, "battery": w_battery, "plugin": w_plugin,
+    "art": w_art, "qr": w_qr, "chips": w_chips, "battery": w_battery, "plugin": w_plugin,
 }
 
 
