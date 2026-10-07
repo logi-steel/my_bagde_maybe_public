@@ -99,15 +99,20 @@ ink: "black" | "white"           device.rotation: 0 | 90 | 180 | 270</pre>
 
 <section id="t-image">
   <div class="card">
+    <div class="mut" style="margin-bottom:8px">1) pick your exported picture &nbsp; 2) <b>Full screen</b> &nbsp; 3) <b>Upload &amp; add as a page</b>.
+      Dither ON = photos, OFF = flat black &amp; white art.</div>
     <input type="file" id="imgin" accept="image/*">
     <div class="row">
+      <button id="ifull">Full screen</button>
       <label>width <input type="number" id="iw" value="64" min="8" max="250" style="width:80px"></label>
       <label><input type="checkbox" id="idither" checked> dither</label>
       <label>threshold <input type="range" id="ith" min="30" max="225" value="128"></label>
       <label><input type="checkbox" id="iinv"> invert</label>
     </div>
     <canvas id="icv" width="64" height="64"></canvas>
-    <div class="row"><input id="iname" value="photo" style="width:140px"> <button id="iup" class="pri" disabled>Upload to /img/</button></div>
+    <div class="row"><input id="iname" value="photo" style="width:140px">
+      <button id="iadd" class="pri" disabled>Upload &amp; add as a page</button>
+      <button id="iup" disabled>Upload only</button></div>
     <div class="mut" id="isnip"></div>
   </div>
 </section>
@@ -211,7 +216,7 @@ function toPBM(){
   const img=new Image();img.onload=()=>{
     const w=Math.max(8,Math.min(250,+$('iw').value||64)),h=Math.max(1,Math.round(img.height*w/img.width));
     const cv=$('icv');cv.width=w;cv.height=h;const c=cv.getContext('2d');
-    c.fillStyle='#fff';c.fillRect(0,0,w,h);c.drawImage(img,0,0,w,h);
+    c.fillStyle='#fff';c.fillRect(0,0,w,h);c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(img,0,0,w,h);
     const d=c.getImageData(0,0,w,h),g=new Float32Array(w*h);
     for(let i=0;i<w*h;i++){let v=0.299*d.data[i*4]+0.587*d.data[i*4+1]+0.114*d.data[i*4+2];g[i]=$('iinv').checked?255-v:v}
     const th=+$('ith').value,dither=$('idither').checked,bits=new Uint8Array(w*h);
@@ -222,13 +227,27 @@ function toPBM(){
     out.set(hdr);
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(bits[y*w+x])out[hdr.length+y*bpr+(x>>3)]|=0x80>>(x&7);
       const o=(y*w+x)*4;d.data[o]=d.data[o+1]=d.data[o+2]=bits[y*w+x]?0:255;d.data[o+3]=255}
-    c.putImageData(d,0,0);pbm=out;$('iup').disabled=false;
+    c.putImageData(d,0,0);pbm=out;$('iup').disabled=false;$('iadd').disabled=false;
     $('isnip').textContent='widget: {"type":"image","src":"img/'+$('iname').value+'.pbm","x":0,"y":0}   ('+w+'x'+h+' px, '+out.length+' bytes)'};
   img.src=URL.createObjectURL(f)}
 ['imgin','iw','idither','ith','iinv'].forEach(i=>$(i).addEventListener('input',toPBM));
 $('iname').addEventListener('input',()=>{if(pbm)toPBM()});
-$('iup').onclick=async()=>{const n=$('iname').value.replace(/[^A-Za-z0-9_-]/g,'')||'photo';
-  await guard(async()=>{await api('file?path=/img/'+n+'.pbm',{method:'PUT',body:pbm});toast('uploaded /img/'+n+'.pbm')})};
+function imgName(){return $('iname').value.replace(/[^A-Za-z0-9_-]/g,'')||'photo'}
+async function uploadImage(){const n=imgName();
+  await api('file?path=/img/'+n+'.pbm',{method:'PUT',body:pbm});return n}
+$('iup').onclick=()=>guard(async()=>{const n=await uploadImage();toast('uploaded /img/'+n+'.pbm')});
+$('iadd').onclick=()=>guard(async()=>{
+  const n=await uploadImage(),src='img/'+n+'.pbm';
+  const cfg=JSON.parse(await api('config',undefined,true));cfg.pages=cfg.pages||[];
+  let idx=cfg.pages.findIndex(p=>(p.items||[]).some(it=>it.type==='image'&&it.src===src)),added=idx<0;
+  if(added){cfg.pages.push({id:n,items:[{type:'image',src:src,x:0,y:0}]});idx=cfg.pages.length-1}
+  const text=JSON.stringify(cfg,null,2);
+  await api('config',{method:'PUT',body:text});
+  $('cfg').value=text;page=idx;
+  toast((added?'added as page ':'updated page ')+(idx+1));
+  tab('preview')});
+$('ifull').onclick=async()=>{const s=await guard(()=>api('status'));
+  const rot=s&&s.rotation!=null?s.rotation:0;$('iw').value=(rot===90||rot===270)?122:250;toPBM()};
 
 // system
 async function loadSys(){const s=await guard(()=>api('status'));if(s)$('sys').textContent=JSON.stringify(s,null,2)}
