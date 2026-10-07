@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "device": {
+    "rotation": 0,
+    "sleep": "deep",
+    "full_refresh_every": 10,
+    "auto_rotate_min": 0,
+    "long_press_ms": 1200
+  },
+  "vars": {
+    "name": "Logi",
+    "role": "maker / tinkerer",
+    "github": "logi-steel",
+    "ask": "3D printing & e-ink"
+  },
+  "pages": [
+    {
+      "id": "hero",
+      "items": [
+        {"type": "text", "text": "Hi, I'm", "x": 8, "y": 6, "font": "s16"},
+        {"type": "text", "text": "{name}", "x": 8, "y": 20, "font": "b36"},
+        {"type": "text", "text": "{role}", "x": 8, "y": 68, "font": "s16"},
+        {"type": "chips", "items": ["MicroPython", "ESP32", "3D print"], "x": 8, "y": 95, "font": "s12"},
+        {"type": "battery", "x": 188, "y": 6},
+        {"type": "image", "src": "img/chip.pbm", "x": 202, "y": 36}
+      ]
+    },
+    {
+      "id": "github",
+      "items": [
+        {"type": "qr", "data": "https://github.com/{github}", "x": 4, "y": 4, "size": 114, "ecc": "M"},
+        {"type": "text", "text": "Find me on GitHub", "x": 120, "y": 8, "w": 126, "font": "b16"},
+        {"type": "text", "text": "{github}", "x": 120, "y": 62, "w": 126, "font": "b16"},
+        {"type": "text", "text": "page {page}/{pages}", "x": 120, "y": 102, "w": 126, "font": "s12"}
+      ]
+    },
+    {
+      "id": "ask",
+      "invert": true,
+      "items": [
+        {"type": "text", "text": "ASK ME ABOUT", "x": 0, "y": 8, "w": 250, "align": "center", "font": "b24"},
+        {"type": "line", "x1": 30, "y1": 44, "x2": 220, "y2": 44},
+        {"type": "text", "text": "{ask}", "x": 0, "y": 54, "w": 250, "align": "center", "font": "b24", "lines": 2}
+      ]
+    },
+    {
+      "id": "boop",
+      "items": [
+        {"type": "plugin", "name": "boop", "x": 0, "y": 0}
+      ]
+    }
+  ]
+}
