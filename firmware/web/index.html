@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Badge portal</title>
+<style>
+:root{--bg:#f4f4f1;--card:#fff;--fg:#1b1b1b;--mut:#6b6b66;--line:#d9d9d2;--acc:#111;--accfg:#fff;--bad:#b3261e;--ok:#1a7f37}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--card:#1e1e1e;--fg:#ececea;--mut:#9a9a94;--line:#333;--acc:#ececea;--accfg:#111;--bad:#ff8a80;--ok:#6fdc8c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+header b{font-size:17px;letter-spacing:.3px}
+#stat{color:var(--mut);font-size:12px}
+nav{display:flex;gap:4px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid var(--line)}
+nav button{flex:none}
+main{max-width:860px;margin:0 auto;padding:14px 16px 60px}
+section{display:none}section.on{display:block}
+button,select,input[type=number]{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+button{cursor:pointer}
+button.pri,nav button.on{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+button.bad{color:var(--bad)}
+button:disabled{opacity:.5}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
+textarea{width:100%;font:13px/1.4 ui-monospace,Menlo,monospace;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px;resize:vertical;tab-size:2}
+#cfg{height:52vh;min-height:300px}
+canvas{image-rendering:pixelated;border:1px solid var(--line);background:#fff;max-width:100%;display:block}
+#msg{position:fixed;left:12px;right:12px;bottom:12px;max-width:600px;margin:auto;padding:10px 14px;border-radius:10px;background:var(--acc);color:var(--accfg);display:none;z-index:9;white-space:pre-wrap}
+#msg.err{background:var(--bad);color:#fff}
+.mut{color:var(--mut);font-size:13px}
+table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px solid var(--line);font-size:14px}
+td.n{word-break:break-all}td.a{text-align:right;white-space:nowrap}td.a button{padding:3px 8px;font-size:13px}
+details{margin:8px 0}summary{cursor:pointer;color:var(--mut)}
+pre{background:var(--bg);padding:8px;border-radius:6px;overflow:auto;font-size:12px}
+code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
+.errs{color:var(--bad);font-size:13px;margin-top:6px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<header><b>Badge portal</b><span id="stat">connecting...</span></header>
+<nav id="tabs"></nav>
+<main>
+
+<section id="t-preview">
+  <div class="card">
+    <canvas id="cv" width="250" height="122"></canvas>
+    <div class="errs" id="perr"></div>
+    <div class="row">
+      <button id="pprev">&lsaquo;</button><span id="pno" class="mut">page 1/1</span><button id="pnext">&rsaquo;</button>
+      <span style="flex:1"></span>
+      <button id="show" class="pri">Show on badge</button>
+      <button id="showfull">Full refresh</button>
+    </div>
+    <div class="mut">Preview is rendered by the badge itself with your unsaved edits. "Show on badge" refreshes the e-paper (about 1&ndash;3 s).</div>
+  </div>
+</section>
+
+<section id="t-config">
+  <div class="row">
+    <button id="save" class="pri">Save</button><button id="fmt">Format</button><button id="reload">Reload</button>
+    <button id="restore-cfg">Restore backup</button>
+  </div>
+  <textarea id="cfg" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+  <div class="errs" id="cerr"></div>
+  <details><summary>Widget cheat sheet</summary>
+<pre>pages[].invert:true              white on black page
+text   text x y [w align=left|center|right wrap lines gap font ink]
+         text may contain {vars} (see "vars"), {battery} {page} {pages}
+         fonts: s12 s16 b16 b24 b36 m12 px16  (8x8 / 8x8x2 = built-in)
+rect   x y w h [r fill ink]      circle x y r [fill]
+line   x1 y1 x2 y2 [thickness]   image  src x y [invert]   (PBM from Image tab)
+qr     data x y [size|scale ecc=L|M|Q|H border]
+chips  items[] x y [w font padx pady gap r fill]
+battery x y [text]               plugin name x y [...your own keys]
+ink: "black" | "white"           device.rotation: 0 | 90 | 180 | 270</pre>
+  </details>
+</section>
+
+<section id="t-files">
+  <div class="card">
+    <table id="ftable"></table>
+    <div class="mut" id="fsfree"></div>
+  </div>
+  <div class="card">
+    <div class="row">
+      <input type="file" id="up" multiple>
+      <select id="updir"><option value="">auto</option><option>/</option><option>/plugins/</option><option>/fonts/</option><option>/img/</option><option>/badge/</option></select>
+      <button id="upgo">Upload</button>
+    </div>
+    <div class="mut">.py files are compile-checked first; the old version is kept as .bak. Changes to /badge/*.py apply after "Exit &amp; reboot".</div>
+  </div>
+  <div class="card" id="editor" style="display:none">
+    <div class="row"><b id="epath"></b><span style="flex:1"></span><button id="esave" class="pri">Save</button><button id="eclose">Close</button></div>
+    <textarea id="etext" spellcheck="false" style="height:50vh"></textarea>
+    <div class="errs" id="eerr"></div>
+  </div>
+</section>
+
+<section id="t-image">
+  <div class="card">
+    <input type="file" id="imgin" accept="image/*">
+    <div class="row">
+      <label>width <input type="number" id="iw" value="64" min="8" max="250" style="width:80px"></label>
+      <label><input type="checkbox" id="idither" checked> dither</label>
+      <label>threshold <input type="range" id="ith" min="30" max="225" value="128"></label>
+      <label><input type="checkbox" id="iinv"> invert</label>
+    </div>
+    <canvas id="icv" width="64" height="64"></canvas>
+    <div class="row"><input id="iname" value="photo" style="width:140px"> <button id="iup" class="pri" disabled>Upload to /img/</button></div>
+    <div class="mut" id="isnip"></div>
+  </div>
+</section>
+
+<section id="t-system">
+  <div class="card"><pre id="sys">...</pre></div>
+  <div class="row"><button id="exit" class="pri">Exit &amp; reboot</button></div>
+  <div class="mut">The portal also closes by itself after a few idle minutes, or when you press the badge button.</div>
+</section>
+
+</main>
+<div id="msg"></div>
+<script>
+const $=id=>document.getElementById(id);
+let page=0,pages=1,files=[],timer;
+function toast(t,err){const m=$('msg');m.textContent=t;m.className=err?'err':'';m.style.display='block';clearTimeout(m._t);m._t=setTimeout(()=>m.style.display='none',err?6000:2200)}
+async function api(path,opt,raw){
+  const r=await fetch('/api/'+path,opt);
+  const ct=r.headers.get('content-type')||'';
+  const body=(ct.includes('json')&&!raw)?await r.json():await r.text();
+  if(!r.ok){let m=body;try{m=JSON.parse(body).error||body}catch(e){if(body&&body.error)m=body.error}throw new Error(m||r.status+' '+r.statusText)}
+  return body}
+async function guard(fn){try{return await fn()}catch(e){toast(e.message,1)}}
+
+// tabs
+const TABS=[['preview','Preview'],['config','Config'],['files','Files'],['image','Image'],['system','System']];
+TABS.forEach(([id,label])=>{const b=document.createElement('button');b.textContent=label;b.id='tb-'+id;b.onclick=()=>tab(id);$('tabs').appendChild(b)});
+function tab(id){TABS.forEach(([t])=>{$('t-'+t).classList.toggle('on',t===id);$('tb-'+t).classList.toggle('on',t===id)});
+  if(id==='files')loadFiles();if(id==='system')loadSys();if(id==='preview')preview()}
+
+// preview
+function drawPBM(w,h,b64){
+  const cv=$('cv');cv.width=w;cv.height=h;cv.style.width=Math.min(w*3,window.innerWidth-60)+'px';
+  const bin=atob(b64),bpr=(w+7)>>3,ctx=cv.getContext('2d'),im=ctx.createImageData(w,h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const on=(bin.charCodeAt(y*bpr+(x>>3))>>(7-(x&7)))&1,o=(y*w+x)*4,v=on?0:255;
+    im.data[o]=im.data[o+1]=im.data[o+2]=v;im.data[o+3]=255}
+  ctx.putImageData(im,0,0)}
+async function preview(){
+  const r=await guard(()=>api('preview?page='+page,{method:'POST',body:$('cfg').value}));
+  if(!r){$('perr').textContent='';return}
+  page=r.page;pages=r.pages;$('pno').textContent='page '+(page+1)+'/'+pages;
+  drawPBM(r.w,r.h,r.data);$('perr').textContent=r.errors.join('\n')}
+$('pprev').onclick=()=>{page=(page-1+pages)%pages;preview()};
+$('pnext').onclick=()=>{page=(page+1)%pages;preview()};
+async function showOn(full){
+  toast('refreshing e-paper...');
+  const r=await guard(()=>api('show?page='+page+(full?'&full=1':''),{method:'POST',body:$('cfg').value}));
+  if(r)toast('done'+(r.errors.length?' (with widget errors)':''))}
+$('show').onclick=()=>showOn(false);$('showfull').onclick=()=>showOn(true);
+
+// config
+async function loadCfg(){const t=await guard(()=>api('config',undefined,true));if(t!==undefined){$('cfg').value=t;$('cerr').textContent=''}}
+$('reload').onclick=loadCfg;
+$('fmt').onclick=()=>{try{$('cfg').value=JSON.stringify(JSON.parse($('cfg').value),null,2);$('cerr').textContent=''}catch(e){$('cerr').textContent=e.message}};
+$('save').onclick=async()=>{
+  try{JSON.parse($('cfg').value)}catch(e){$('cerr').textContent='JSON error: '+e.message;return}
+  try{const r=await api('config',{method:'PUT',body:$('cfg').value});$('cerr').textContent=r.warnings.length?'warnings:\n'+r.warnings.join('\n'):'';toast('saved')}
+  catch(e){$('cerr').textContent=e.message;toast('not saved',1)}};
+$('restore-cfg').onclick=async()=>{if(!confirm('Swap config.json with config.json.bak?'))return;
+  await guard(()=>api('restore?path=/config.json',{method:'POST'}));loadCfg();toast('restored')};
+$('cfg').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>{if($('t-preview').classList.contains('on'))preview()},500)});
+
+// files
+const TEXT=/\.(py|json|txt|md|html|css|js)$/;
+function fmtB(n){return n<1024?n+' B':(n/1024).toFixed(1)+' KB'}
+async function loadFiles(){
+  const r=await guard(()=>api('files'));if(!r)return;files=r.files;
+  const names=new Set(files.map(f=>f.p));
+  $('ftable').innerHTML='';
+  files.filter(f=>!f.p.endsWith('.bak')).forEach(f=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td class="n"></td><td class="mut">'+fmtB(f.s)+'</td><td class="a"></td>';
+    tr.firstChild.textContent=f.p;const a=tr.lastChild;
+    const btn=(t,fn,cls)=>{const b=document.createElement('button');b.textContent=t;if(cls)b.className=cls;b.onclick=fn;a.appendChild(b);a.appendChild(document.createTextNode(' '))};
+    if(TEXT.test(f.p))btn('edit',()=>edit(f.p));
+    btn('get',()=>{location.href='/api/file?path='+encodeURIComponent(f.p)});
+    if(names.has(f.p+'.bak'))btn('undo',async()=>{await guard(()=>api('restore?path='+encodeURIComponent(f.p),{method:'POST'}));loadFiles();toast('restored previous version')});
+    if(f.p!=='/main.py'&&f.p!=='/boot.py')btn('del',async()=>{if(!confirm('Delete '+f.p+'?'))return;await guard(()=>api('file?path='+encodeURIComponent(f.p),{method:'DELETE'}));loadFiles()},'bad');
+    $('ftable').appendChild(tr)});
+  $('fsfree').textContent='free flash: '+fmtB(r.free)}
+async function edit(p){
+  const r=await fetch('/api/file?path='+encodeURIComponent(p));if(!r.ok){toast('cannot open',1);return}
+  $('epath').textContent=p;$('etext').value=await r.text();$('eerr').textContent='';$('editor').style.display='block';$('editor').scrollIntoView()}
+$('eclose').onclick=()=>$('editor').style.display='none';
+$('esave').onclick=async()=>{
+  try{await api('file?path='+encodeURIComponent($('epath').textContent),{method:'PUT',body:$('etext').value});$('eerr').textContent='';toast('saved');loadFiles();
+    if($('epath').textContent==='/config.json')loadCfg()}
+  catch(e){$('eerr').textContent=e.message;toast('not saved',1)}};
+$('upgo').onclick=async()=>{
+  for(const f of $('up').files){
+    let d=$('updir').value;if(!d){const e=f.name.split('.').pop().toLowerCase();d=e==='fnt'?'/fonts/':e==='pbm'?'/img/':e==='py'?'/plugins/':'/'}
+    try{await api('file?path='+encodeURIComponent(d+f.name),{method:'PUT',body:await f.arrayBuffer()});toast('uploaded '+d+f.name)}
+    catch(e){toast(f.name+': '+e.message,1)}}
+  $('up').value='';loadFiles()};
+
+// image -> PBM
+let pbm=null;
+function toPBM(){
+  const f=$('imgin').files[0];if(!f)return;
+  const img=new Image();img.onload=()=>{
+    const w=Math.max(8,Math.min(250,+$('iw').value||64)),h=Math.max(1,Math.round(img.height*w/img.width));
+    const cv=$('icv');cv.width=w;cv.height=h;const c=cv.getContext('2d');
+    c.fillStyle='#fff';c.fillRect(0,0,w,h);c.drawImage(img,0,0,w,h);
+    const d=c.getImageData(0,0,w,h),g=new Float32Array(w*h);
+    for(let i=0;i<w*h;i++){let v=0.299*d.data[i*4]+0.587*d.data[i*4+1]+0.114*d.data[i*4+2];g[i]=$('iinv').checked?255-v:v}
+    const th=+$('ith').value,dither=$('idither').checked,bits=new Uint8Array(w*h);
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const i=y*w+x,old=g[i],nv=old<(dither?128:th)?0:255,e=old-nv;bits[i]=nv?0:1;
+      if(dither){if(x+1<w)g[i+1]+=e*7/16;if(y+1<h){if(x>0)g[i+w-1]+=e*3/16;g[i+w]+=e*5/16;if(x+1<w)g[i+w+1]+=e/16}}}
+    const bpr=(w+7)>>3,hdr=new TextEncoder().encode('P4\n'+w+' '+h+'\n'),out=new Uint8Array(hdr.length+bpr*h);
+    out.set(hdr);
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(bits[y*w+x])out[hdr.length+y*bpr+(x>>3)]|=0x80>>(x&7);
+      const o=(y*w+x)*4;d.data[o]=d.data[o+1]=d.data[o+2]=bits[y*w+x]?0:255;d.data[o+3]=255}
+    c.putImageData(d,0,0);pbm=out;$('iup').disabled=false;
+    $('isnip').textContent='widget: {"type":"image","src":"img/'+$('iname').value+'.pbm","x":0,"y":0}   ('+w+'x'+h+' px, '+out.length+' bytes)'};
+  img.src=URL.createObjectURL(f)}
+['imgin','iw','idither','ith','iinv'].forEach(i=>$(i).addEventListener('input',toPBM));
+$('iname').addEventListener('input',()=>{if(pbm)toPBM()});
+$('iup').onclick=async()=>{const n=$('iname').value.replace(/[^A-Za-z0-9_-]/g,'')||'photo';
+  await guard(async()=>{await api('file?path=/img/'+n+'.pbm',{method:'PUT',body:pbm});toast('uploaded /img/'+n+'.pbm')})};
+
+// system
+async function loadSys(){const s=await guard(()=>api('status'));if(s)$('sys').textContent=JSON.stringify(s,null,2)}
+$('exit').onclick=async()=>{if(!confirm('Close the portal and reboot the badge?'))return;
+  await guard(()=>api('exit',{method:'POST'}));document.body.innerHTML='<main><h3>Badge is rebooting.</h3><p>You can close this page.</p></main>'};
+async function stat(){const s=await guard(()=>api('status'));
+  if(s)$('stat').textContent=(s.battery!=null?s.battery+'% · ':'')+Math.round(s.heap_free/1024)+' KB heap · v'+s.version}
+
+(async()=>{tab('preview');await loadCfg();await preview();stat()})();
+</script>
+</body>
+</html>
